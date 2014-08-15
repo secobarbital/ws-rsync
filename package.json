@@ -1,0 +1,15 @@
+{
+  "name": "ws-rsync",
+  "version": "0.0.1",
+  "description": "Keep a folder synced with rsync via socket.io signalling",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Seggy Umboh <seg@seg.gy>",
+  "license": "ISC",
+  "dependencies": {
+    "rsync": "^0.3.0",
+    "socket.io-client": "^1.0.6"
+  }
+}
