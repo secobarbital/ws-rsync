@@ -44,7 +44,7 @@ function syncIt() {
     }
     if (deferred) {
       deferred = false;
-      syncIt(event, path);  
-    } 
+      syncIt();
+    }
   });
 }
