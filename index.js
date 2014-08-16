@@ -1,50 +1,41 @@
 #!/usr/bin/env node
 
-var socket = require('socket.io-client')(process.env.SERVER);
+var _ = require('lodash');
+var io = require('socket.io-client');
 var Rsync = require('rsync');
 
-var inflight = false;
-var deferred = false;
+var syncIt = _.throttle(syncItNow, 1000);
+
 var rsync = new Rsync()
   .archive()
   .compress()
   .source(process.env.RSYNC_SOURCE)
   .destination(process.env.RSYNC_DESTINATION);
 
-syncIt();
-socket.on('connect', function() {
-  console.log('connect');
-  socket.on('disconnect', function() {
-    console.log('disconnect');
-  });
+syncIt(function() {
+  var socket = io(process.env.SERVER);
+  socket.on('connect', function() {
+    console.log('connect');
+    socket.on('disconnect', function() {
+      console.log('disconnect');
+    });
 
-  socket.on('all', syncIt);
-  socket.on('add', function(path) {console.log('File', path, 'has been added');})
-  socket.on('addDir', function(path) {console.log('Directory', path, 'has been added');})
-  socket.on('change', function(path) {console.log('File', path, 'has been changed');})
-  socket.on('unlink', function(path) {console.log('File', path, 'has been removed');})
-  socket.on('unlinkDir', function(path) {console.log('Directory', path, 'has been removed');})
-  socket.on('error', function(error) {console.error('Error happened', error);})
+    socket.on('all', syncIt);
+    socket.on('add', function(path) {console.log('File', path, 'has been added');})
+    socket.on('addDir', function(path) {console.log('Directory', path, 'has been added');})
+    socket.on('change', function(path) {console.log('File', path, 'has been changed');})
+    socket.on('unlink', function(path) {console.log('File', path, 'has been removed');})
+    socket.on('unlinkDir', function(path) {console.log('Directory', path, 'has been removed');})
+    socket.on('error', function(error) {console.error('Error happened', error);})
+  });
 });
 
-function syncIt() {
+function syncItNow(done) {
   console.log('syncIt');
-  if (inflight) {
-    console.log('deferring');
-    deferred = true;
-    return;
-  }
-  inflight = true;
-  console.log('rsyncing');
   rsync.execute(function(err, code, cmd) {
-    console.log('rsynced');
-    inflight = false;
-    if (err) {
-      console.error('Error executing rsync', err);
-    }
-    if (deferred) {
-      deferred = false;
-      syncIt();
+    console.log('syncedIt', err, code, cmd);
+    if (_.isFunction(done)) {
+      done();
     }
   });
 }
