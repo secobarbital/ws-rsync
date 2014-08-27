@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-var _ = require('lodash');
 var io = require('socket.io-client');
+var throat = require('throat');
+var Promise = require('promise');
 var Rsync = require('rsync');
-
-var syncIt = _.throttle(syncItNow, 1000);
 
 var rsync = new Rsync()
   .archive()
@@ -12,7 +11,9 @@ var rsync = new Rsync()
   .source(process.env.RSYNC_SOURCE)
   .destination(process.env.RSYNC_DESTINATION);
 
-syncIt(function() {
+var syncIt = throat(1, syncItLoud);
+
+syncIt().then(function() {
   var socket = io(process.env.SERVER);
   socket.on('connect', function() {
     console.log('connect');
@@ -30,12 +31,21 @@ syncIt(function() {
   });
 });
 
-function syncItNow(done) {
-  console.log('syncIt');
-  rsync.execute(function(err, code, cmd) {
-    console.log('syncedIt', err, code, cmd);
-    if (_.isFunction(done)) {
-      done();
-    }
+function syncItNow() {
+  return new Promise(function(resolve, reject) {
+    console.log('syncIt');
+    rsync.execute(function(err, code, cmd) {
+      if (err) reject(err);
+      else resolve();
+    });
   });
+}
+
+function syncItLoud() {
+  return syncItNow()
+    .then(function() {
+      console.log('syncedIt');
+    }, function(err) {
+      console.log('suckedIt', err);
+    });
 }
